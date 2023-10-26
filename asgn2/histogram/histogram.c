@@ -139,24 +139,6 @@ int main(){
 			*(str + j) = '*';
 			*(str + j + 1) = '\0';	
 		}
-		//If the string isn't empty than we must add a space before the asterisks
-		/*if(*str != '\0'){
-			//Realloc memory in order for space and null terminator
-			char *temp = (char *)realloc(str,strlen(str) + 2);
-                        if (!temp) {
-                                // handle memory allocation failure
-                                free(str);  // important if you don't want to continue using `input` after this point
-                                printf("Failed to reallocate memory");
-                                return 1;
-			}
-			else{
-				str = temp;
-			}
-			//Move the memory located in str by 1
-			memmove(str + 1, str, strlen(str) + 1);
-			//Make first character of spring into a space
-			str[0] = ' ';
-		}*/
 		//Print statement using minimum, size and asterisk string
 		printf("[%3d:%3d] %s\n", mins, (mins + (size - 1)), str);
 	}
