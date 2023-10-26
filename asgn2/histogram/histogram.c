@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #define MIN 0
 
 //Implementing an int stack data strucutre with an integer data and a pointer that points to the next node
@@ -60,6 +61,12 @@ int main(){
 	printf("16 bins of size 1 for range [0,16)\n");
 	//While loop to gather input
 	while(scanf("%c", &character) != EOF){
+		/* Use the following if doesn't work, use in order to implement copy paste method
+
+		 if(character == '\004'){
+			break;
+		}
+		*/
 		//Push data into stack if character is whitespace
 		if(character == ' ' || character == '\t' || character == '\n'){
 			num = atoi(input);
@@ -132,8 +139,26 @@ int main(){
 			*(str + j) = '*';
 			*(str + j + 1) = '\0';	
 		}
+		//If the string isn't empty than we must add a space before the asterisks
+		if(*str != '\0'){
+			//Realloc memory in order for space and null terminator
+			char *temp = (char *)realloc(str,strlen(str) + 2);
+                        if (!temp) {
+                                // handle memory allocation failure
+                                free(str);  // important if you don't want to continue using `input` after this point
+                                printf("Failed to reallocate memory");
+                                return 1;
+			}
+			else{
+				str = temp;
+			}
+			//Move the memory located in str by 1
+			memmove(str + 1, str, strlen(str) + 1);
+			//Make first character of spring into a space
+			str[0] = ' ';
+		}
 		//Print statement using minimum, size and asterisk string
-		printf("[%3d:%3d] %s\n", mins, (mins + (size - 1)), str);
+		printf("[%3d:%3d]%s\n", mins, (mins + (size - 1)), str);
 	}
 	
 	//Print new line
