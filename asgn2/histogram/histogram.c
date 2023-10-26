@@ -160,9 +160,7 @@ int main(){
 		//Print statement using minimum, size and asterisk string
 		printf("[%3d:%3d]%s\n", mins, (mins + (size - 1)), str);
 	}
-	
-	//Print new line
-	printf("\n");
+
 
 
 	//Free memory from input string and make input equal to NULL
