@@ -3,12 +3,16 @@
 // returns the index of the item added  
 int add_record(Record record) {
 	// Your code here
+	// Adding the record
 	table.record[table.nval] = record;
+	//Increasing the current number of records
 	table.nval++;
+	//Reallocating memory if array is full
 	if(table.nval == table.max){
 		table.record = reallocarray(table.record, table.max * 2, sizeof(Record));
 		table.max = table.max * 2;
 	}
+	// Returning index
 	int temp = table.nval - 1;
 	return temp;
 }
@@ -18,17 +22,22 @@ int add_record(Record record) {
 // moves records
 int del_record(const char *name) {
 	// Your code here
+	// Finding which index the record is at
 	int i = 0;
 	while(table.record[i].name != name && i != table.nval){
 		i++;
 	}
+	//If not equal then return 0 because that means that there was no record with the name
 	if(table.record[i].name != name){
 		return 0;
 	}
 	else{
+		//Move all the records
 		for(int j = i; j < table.nval; j ++){
 			table.record[j] = table.record[j + 1];
 		}
+		//Decrease current number of records
+		table.nval--;
 		return 1;
 	}
 }
@@ -36,17 +45,20 @@ int del_record(const char *name) {
 // returns id of student record of the first matching record
 int get_id(const char *name) {
 	// Your code here
+	// Iterate through array and if name = record name then return the id
 	for(int i = 0; i < table.nval; i++){
 		if(table.record[i].name == name){
 			return table.record[i].id;
 		}
 	}
+	// If there is no record with the name return 0
 	return 0;
 }
 
 // returns record with a valid index, 0 to max-1 
 Record get_record(int index) {
 	// Your code here
+	// Return the record at the index
 	return table.record[index];
 }
 
