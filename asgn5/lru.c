@@ -6,37 +6,38 @@
 #include <stdbool.h>
 
 //Helper function to find the least used key
-const char *least_used(lru_t *lru){
-	//Return NULL if lru is empty or equal to NULL
-	if(lru == NULL){
-		return NULL;	
-	}
-	if(lru->curr == 0){
-		return NULL;
-	}
-	//Create temporary set for iteration and intialize max num and i
-	set_t *temp = lru->num;
-	int max = 0;
-	int num = 0;
-	int i = 0;
-	//Iterate through the set and change max variable if it is greater than max
-	while(temp!=NULL){
-		if(*((int*)temp->item)> max){
-			//Change max variable and log num as i for iteration purposes
-			max = *((int*)temp->item);
-			num = i;
-		}
-		i++;
-		temp = temp->next;
+const char *least_used(lru_t *lru) {
+    // Return NULL if lru is empty or equal to NULL
+    if (lru == NULL || lru->curr == 0) {
+        return NULL;
+    }
 
-	}
-	//Create temporary set for iteration and return key in the right node
-	set_t *temp1 = lru->num;
-	for(int i = 0; i < num; i++){
-		temp1 = temp1->next;
-	}
-	return temp1->key;
+    // Create temporary set for iteration and initialize max, num, and i
+    set_t *temp = lru->num;
+    int max = 0;
+    int num = 0;
+    int i = 0;
+
+    // Iterate through the set and update max if a higher value is found
+    while (temp != NULL) {
+        if (*((int*)temp->item) > max) {
+            max = *((int*)temp->item);  // Update max
+            num = i;  // Record the index of this item
+        }
+        i++;
+        temp = temp->next;
+    }
+
+    // Create another temporary set for iteration to find the key at the recorded index
+    set_t *temp1 = lru->num;
+    for (int j = 0; j < num && temp1 != NULL; j++) {
+        temp1 = temp1->next;
+    }
+
+    // Return the key if temp1 is not NULL
+    return (temp1 != NULL) ? temp1->key : NULL;
 }
+
 
 //Create empty lru, return NULL if error
 lru_t *lru_new(const int capacity){
@@ -49,6 +50,9 @@ lru_t *lru_new(const int capacity){
 		lru->max = capacity;
 		lru->set = set_new();
 		lru->num = set_new();
+		if(lru->set == NULL || lru->num == NULL){
+			return NULL;
+		}
 		lru->curr = 0;
 	}
 	//Return lru
@@ -56,70 +60,118 @@ lru_t *lru_new(const int capacity){
 }
 
 //Add new item to lru
-bool lru_insert(lru_t *ht, const char *key, void *item){
-	//If any parameter is false return NULL
-	if(ht == NULL || key == NULL || item == NULL){
-		return false;
-	}
-	//Create temporary set for iteration
-	set_t *temp5 = ht->set;
-	//Check if key exists already, if it does return false
-	while(temp5 != NULL){
-		if(strcmp(temp5->key, key) == 0){
-			return false;
-		}
-		temp5 = temp5->next;
-	}
-	//If current number of items is equal to max then change the least used node to the new node
-	if(ht->curr == ht->max){
-		//Find the least used key using helper function
-		const char *least = least_used(ht);
-		//Create temp for iteration
-		set_t *temp = ht->set;
-		//Create i to find the right index
-		int i = 0;
-		//Check where the least used key is
-		while(strcmp(temp->key, least) != 0){
-			temp = temp->next;
-			i++;
-		}
-		//Change the least used key to the new key and item
-		temp->key = key;
-		temp->item = item;
-		//Change the corresponding item in num set to the new key and 0
-		set_t *temp1 = ht->num;
-		for(int j = 0; j < i; j++){
-			temp1 = temp1->next;
-		}
-		temp1->key = key;
-		temp1->item = 0;
-	//Else if number of items is not equal to max
-	}else{
-		//Add new key and item normally
-		bool success1 = set_insert(ht->set, key, item);
-		//Check for errors
-		if(success1 == false){
-			return false;
-		}
-		//Add new key and num 0 normally to num set
-		bool success2 = set_insert(ht->set, key, 0);
-		//Check for errors
-		if(success2 == false){
-			return false;
-		}
-		//Increase the current number of items by 1 
-		ht->curr++;
-	}
-	//Check that if the key is not equal to the added key the number in num set increases by 1
-	set_t *temp2 = ht->num;
-	while(temp2 != NULL){
-		if(strcmp(temp2->key, key) != 0){
-			int* itemPtr = (int*)temp2->item;
-			(*itemPtr)++;
-		}
-	}
-	return true;
+bool lru_insert(lru_t *ht, const char *key, void *item) {
+    if (ht == NULL || key == NULL || item == NULL) {
+        return false;
+    }
+
+    // Check if the key already exists
+    set_t *temp = ht->set;
+    while (temp != NULL) {
+        if (temp->key != NULL && strcmp(temp->key, key) == 0) {
+            return false; // Key already exists
+        }
+        temp = temp->next;
+    }
+
+    // Allocate memory for the usage count
+    int *usageCount = malloc(sizeof(int));
+    if (usageCount == NULL) {
+        return false; // Memory allocation failed
+    }
+    *usageCount = 0; // Initialize usage count
+
+    // Check if the LRU cache is full
+    //For testing printf("%d = %d\n", ht->curr, ht->max);
+    if (ht->curr == ht->max) {
+        const char *least = least_used(ht);
+        if (least == NULL) {
+            free(usageCount);
+            return false;
+        }
+	//For testing printf("%s\n", least);
+
+        set_t *new_node = (set_t *) malloc(sizeof(set_t));
+        if (new_node == NULL) {
+            free(usageCount);
+	    //For testing printf("bleh");
+            return false; // Memory allocation failed
+        }
+        new_node->key = key; // Assume key is not dynamically allocated here
+        new_node->item = item;
+
+        // Replace the least used item
+if (strcmp(ht->set->key, least) == 0) {
+    set_t *old_node = ht->set;
+    ht->set = new_node; // Update the head of the list
+    new_node->next = old_node->next;
+
+    // Free the old node's contents if they were dynamically allocated
+    if (old_node->key != key) {
+        //free((void*)old_node->key); // Free only if dynamically allocated
+    }
+    if (old_node->item != item) {
+        //free(old_node->item); // Free only if dynamically allocated
+    }
+    free(old_node);
+} else {
+    temp = ht->set;
+    while (temp->next != NULL && strcmp(temp->next->key, least) != 0) {
+        temp = temp->next;
+    }
+    if (temp->next != NULL) {
+        set_t *old_node = temp->next;
+        new_node->next = old_node->next;
+        temp->next = new_node;
+
+        // Free the old node
+        free((void*)old_node->key); // Only if dynamically allocated
+        free(old_node->item);       // Only if dynamically allocated
+        free(old_node);
+    } else {
+        free(new_node);
+        free(usageCount);
+        return false;
+    }
 }
+
+
+        set_t *temp1 = ht->num;
+        while (temp1 != NULL && strcmp(temp1->key, least) != 0) {
+            temp1 = temp1->next;
+        }
+
+        if (temp1 != NULL) {
+            free(temp1->item); // Free the old usage count
+            temp1->item = usageCount; // Update to the new usage count
+        } else {
+            free(usageCount);
+            return false;
+        }
+    } else {
+        // Cache is not full, insert normally
+        if (!set_insert(ht->set, key, item) || !set_insert(ht->num, key, usageCount)) {
+            free(usageCount); // Free the allocated memory if insertion fails
+            return false;
+        }
+        ht->curr++;
+    }
+
+    // Increment the counters for all other keys
+    temp = ht->num;
+    while (temp != NULL) {
+        if (temp->key != NULL && strcmp(temp->key, key) != 0) {
+            int* itemPtr = (int*)temp->item;
+            (*itemPtr)++;
+        }
+        temp = temp->next;
+    }
+
+    return true;
+}
+
+
+
 
 //Find item using key in lru
 void *lru_find(lru_t *ht, const char *key){
@@ -138,6 +190,7 @@ void *lru_find(lru_t *ht, const char *key){
 		}else{
 			temp->item = 0;
 		}
+		temp = temp->next;
 	}
 	//Return the item
 	return item;
