@@ -1,6 +1,14 @@
 #ifndef HASH_H_
 #define HASH_H_
+#include <stdbool.h>
+#include "set.h"
 
+typedef struct hashtable_t hashtable_t;
+struct hashtable_t{
+	//Create hashtable node with linked list (set) and next node
+	set_t *set;
+	hashtable_t *next;
+};
 
 /* Create a new (empty) hashtable; return NULL if error. */
 hashtable_t *hashtable_new(const int num_slots);

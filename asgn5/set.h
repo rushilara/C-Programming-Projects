@@ -4,6 +4,7 @@
 
 typedef struct set_t set_t;
 struct set_t{
+	//Create linked list implementation of set that includes key, item and the next node
         const char *key;
         void *item;
         set_t *next;

@@ -19,6 +19,7 @@ set_t* set_new(void){
     return temp_set;
 }
 
+//Insert item into set return true if successful and false if failure
 bool set_insert(set_t *set, const char *key, void *item){
     // Return false if any of the arguments are NULL
     if(set == NULL || key == NULL || item == NULL){
@@ -59,25 +60,28 @@ bool set_insert(set_t *set, const char *key, void *item){
     return true;
 }
 
-void *set_find(set_t *set, const char *key){
-    //Create temp set for iteration
-    set_t *temp = set;
-    // if arguments are NULL return NULL
-    if(set == NULL || key == NULL){
+//Find item using key
+void *set_find(set_t *set, const char *key) {
+    // If arguments are NULL return NULL
+    if (set == NULL || key == NULL) {
         return NULL;
     }
-    //iterate through set and exit loop if node key is equal to argument key or if temp reaches end of list
-    while(temp != NULL && strcmp(temp->key, key) != 0){
+    // Create temp set for iteration
+    set_t *temp = set;
+    // Iterate through set and exit loop if node key is equal to argument key or if temp reaches end of list
+    while (temp != NULL) {
+        // Check if the key is not NULL and matches the argument key
+        if (temp->key != NULL && strcmp(temp->key, key) == 0) {
+            return temp->item;
+        }
         temp = temp->next;
     }
-    // If temp is NULL return NULL
-    if(temp == NULL){
-        return NULL;
-    }
-    //Otherwise, return the item in the node
-    return temp->item;
+    // If temp is NULL (key not found) return NULL
+    return NULL;
 }
 
+
+//Print out whole set
 void set_print(set_t *set, FILE *fp, void (*itemprint)(FILE *fp, const char *key, void *item) ){
     //If file is NULL or the function is NULL don't do anything
     if(fp != NULL && itemprint != NULL){
@@ -96,6 +100,7 @@ void set_print(set_t *set, FILE *fp, void (*itemprint)(FILE *fp, const char *key
     }
 }
 
+//Iterate through set and call function on each item
 void set_iterate(set_t *set, void *arg, void (*itemfunc)(void *arg, const char *key, void *item) ){
     //If set is NULL or itemfunc is NULL do nothing
     if(set != NULL && itemfunc != NULL){
@@ -109,6 +114,7 @@ void set_iterate(set_t *set, void *arg, void (*itemfunc)(void *arg, const char *
     }
 }
 
+//Delete item from set
 void set_delete(set_t *set, void (*itemdelete)(void *item) ){
     //If Set is equal to NULL ignore
     if(set != NULL){
