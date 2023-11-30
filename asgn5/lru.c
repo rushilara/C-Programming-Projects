@@ -66,12 +66,16 @@ bool lru_insert(lru_t *ht, const char *key, void *item) {
     }
 
     // Check if the key already exists
+    // From here on it for the part of my code which will deel with if the lru is full, I will use variables with the underscore _count that will
+    // mimic the other variable in order to properly update the num set as well
     set_t *temp = ht->set;
+    set_t *temp_count = ht->num;
     while (temp != NULL) {
         if (temp->key != NULL && strcmp(temp->key, key) == 0) {
             return false; // Key already exists
         }
         temp = temp->next;
+	temp_count = temp_count->next;
     }
 
     // Allocate memory for the usage count
@@ -93,18 +97,28 @@ bool lru_insert(lru_t *ht, const char *key, void *item) {
 
         set_t *new_node = (set_t *) malloc(sizeof(set_t));
         if (new_node == NULL) {
-            free(usageCount);
-	    //For testing printf("bleh");
+
             return false; // Memory allocation failed
         }
         new_node->key = key; // Assume key is not dynamically allocated here
         new_node->item = item;
-
+	
+	set_t *new_node_count = (set_t *) malloc(sizeof(set_t));
+        if (new_node_count == NULL) {
+            free(usageCount);
+            //For testing printf("bleh");
+            return false; // Memory allocation failed
+        }
+        new_node_count->key = key; // Assume key is not dynamically allocated here
+        new_node_count->item = usageCount;
         // Replace the least used item
 if (strcmp(ht->set->key, least) == 0) {
     set_t *old_node = ht->set;
+    set_t *old_node_count = ht->num;
     ht->set = new_node; // Update the head of the list
+    ht->num = new_node_count;
     new_node->next = old_node->next;
+    new_node_count->next = old_node_count->next;
 
     // Free the old node's contents if they were dynamically allocated
     if (old_node->key != key) {
@@ -114,40 +128,38 @@ if (strcmp(ht->set->key, least) == 0) {
         //free(old_node->item); // Free only if dynamically allocated
     }
     free(old_node);
+    free(old_node_count);
 } else {
     temp = ht->set;
+    temp_count = ht->num;
     while (temp->next != NULL && strcmp(temp->next->key, least) != 0) {
         temp = temp->next;
+	temp_count = temp_count->next;
     }
     if (temp->next != NULL) {
         set_t *old_node = temp->next;
+	set_t *old_node_count = temp_count->next;
         new_node->next = old_node->next;
+	new_node_count->next = old_node_count->next;
         temp->next = new_node;
+	temp_count->next = new_node_count;
 
         // Free the old node
         free((void*)old_node->key); // Only if dynamically allocated
         free(old_node->item);       // Only if dynamically allocated
         free(old_node);
+	free((void*)old_node_count->key);
+	free(old_node_count->item);
+	free(old_node_count);
     } else {
         free(new_node);
+	free(new_node_count);
         free(usageCount);
         return false;
     }
 }
 
 
-        set_t *temp1 = ht->num;
-        while (temp1 != NULL && strcmp(temp1->key, least) != 0) {
-            temp1 = temp1->next;
-        }
-
-        if (temp1 != NULL) {
-            free(temp1->item); // Free the old usage count
-            temp1->item = usageCount; // Update to the new usage count
-        } else {
-            free(usageCount);
-            return false;
-        }
     } else {
         // Cache is not full, insert normally
         if (!set_insert(ht->set, key, item) || !set_insert(ht->num, key, usageCount)) {
