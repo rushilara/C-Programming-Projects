@@ -4,7 +4,6 @@
 #include <string.h>
 #include "hashtable.h"
 #include <stdbool.h>
-#include "set.h"
 
 // prints to file
 void stringPrint(FILE *fp, const char *key, void *item){
