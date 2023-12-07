@@ -96,18 +96,15 @@ void *bag_pull(bag_t *bag){
 //function to delete webpage
 void delete_webpage(webpage_t *webpage){
 	//Ignore if webpage is null
-	if(webpage != NULL){
-		//check if data in webpage is null, if not free it
-		if(webpage->url != NULL){
-			free(webpage->url);
-		}
-		if(webpage->html != NULL){
-			free(webpage->html);
-		}
-		//free webpage
-		free(webpage);
-	}
+    	if(webpage != NULL){
+        	if(webpage->html != NULL){
+            		free(webpage->html);
+        	}
+        	//free webpage
+        	free(webpage);
+    	}
 }
+
 
 //function to delete bag
 void delete_bag(bag_t *bag){
@@ -177,7 +174,7 @@ void extractURLs(char *htmlContent, char *baseUrl, bag_t *bag) {
     		anchorPtr = hrefEnd;
 	}
 }
-
+}
 
 
 static void parseArgs(const int argc, char *argv[], char **seedURL, char **pageDirectory, int *maxDepth) {
