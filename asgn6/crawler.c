@@ -228,51 +228,51 @@ static void crawl(char *seedURL, char *pageDirectory, const int maxDepth) {
 	}
 	//Create new webpage, if creation fails return error
 	webpage_t *seed_webpage = webpage_new();
-	if(seed_webpage == NULL){
-		fprintf(stderr, "issue creating seed_webpage\n");
-		exit(EXIT_FAILURE);
-	}
-	//Pass url and depth into seed_webpage
-	seed_webpage->url = seedURL;
-	seed_webpage->depth = 0;
-	//Insert webpage into bag, if this fails return error
-	if(bag_insert(pagesToCrawl, seedURL, seed_webpage) == false){
-		fprintf(stderr, "issue inserting seedURL to bag\n");
-		exit(EXIT_FAILURE);
-	}
-	//Initialize document_id to start with 1
-	int document_id = 1;
-	//While bag is not empty
-	while(!bag_empty(pagesToCrawl)){
-		//Pull webpage from bag, if webpage is null return NULL
-		webpage_t *webpage = bag_pull(pagesToCrawl);
-		if(webpage == NULL){
-			fprintf(stderr, "issue pulling webpage from bag\n");
+    	if(seed_webpage != NULL){
+        	seed_webpage->url = strdup(seedURL); // Duplicate seedURL
+        	if(seed_webpage->url == NULL){
+            		fprintf(stderr, "issue duplicating seedURL\n");
+            		exit(EXIT_FAILURE);
+        	}
+        	seed_webpage->depth = 0;
+		//Insert webpage into bag, if this fails return error
+		if(bag_insert(pagesToCrawl, seedURL, seed_webpage) == false){
+			fprintf(stderr, "issue inserting seedURL to bag\n");
 			exit(EXIT_FAILURE);
 		}
-		//Download html into webpage
-		size_t length;
-    		webpage->html = download(webpage->url, &length);
-    		webpage->length = length;
-		//If webpage is not NULL save the webpage into directory, icrement document ID
-		if(webpage->html != NULL){
-			pagedir_save(webpage, pageDirectory, document_id);
-			document_id++;
-			//If depth isn't at maxDepth scan more pages into bag and hashtable
-			if(webpage->depth < maxDepth){
-				pageScan(webpage, pagesToCrawl, pagesSeen);
-			}	
-		}
-		//Delete the webpage
-		delete_webpage(webpage);
+		//Initialize document_id to start with 1
+		int document_id = 1;
+		//While bag is not empty
+		while(!bag_empty(pagesToCrawl)){
+			//Pull webpage from bag, if webpage is null return NULL
+			webpage_t *webpage = bag_pull(pagesToCrawl);
+			if(webpage == NULL){
+				fprintf(stderr, "issue pulling webpage from bag\n");
+				exit(EXIT_FAILURE);
+			}
+			//Download html into webpage
+			size_t length;
+    			webpage->html = download(webpage->url, &length);
+    			webpage->length = length;
+			//If webpage is not NULL save the webpage into directory, icrement document ID
+			if(webpage->html != NULL){
+				pagedir_save(webpage, pageDirectory, document_id);
+				document_id++;
+				//If depth isn't at maxDepth scan more pages into bag and hashtable
+				if(webpage->depth < maxDepth){
+					pageScan(webpage, pagesToCrawl, pagesSeen);
+				}	
+			}
+			//Delete the webpage
+			delete_webpage(webpage);
 		
 
 
+		}
+		//Delette the hashtable and the bag
+		hashtable_delete(pagesSeen, NULL);
+		delete_bag(pagesToCrawl);
 	}
-	//Delette the hashtable and the bag
-	hashtable_delete(pagesSeen, NULL);
-	delete_bag(pagesToCrawl);
-
 }
 
 /**
@@ -290,31 +290,28 @@ static void pageScan(webpage_t *page, bag_t *pagesToCrawl, hashtable_t *pagesSee
 	extractURLs(page->html, page->url, urls);
 	//Iterate through bag
 	while(!bag_empty(urls)){
-		//Pull url from bag
-		char *url = bag_pull(urls);
-		// If Url is internal and not already seen
-    		if (isInternalURL(page->url, url)) {
-        		char *new_url = strdup(url);
-        		if (new_url != NULL) {
-            			if (hashtable_insert(pagesSeen, new_url, new_url)) {
-                			webpage_t *new_webpage = webpage_new();
-                			if (new_webpage != NULL) {
-                    				new_webpage->url = new_url;
-                    				new_webpage->depth = page->depth + 1;
-                    				bag_insert(pagesToCrawl, new_url, new_webpage);
-                			}else {
-                    				free(new_url); // Free new_url if webpage creation fails
-                			}
-            			} else {
-                			free(new_url); // Free new_url if insertion fails
-            			}
-        		}
-    		}
+        	char *url = bag_pull(urls);
+        	if(isInternalURL(page->url, url)){
+            		char *new_url = strdup(url);
+            		if(new_url != NULL){
+                		if(hashtable_insert(pagesSeen, new_url, new_url)){
+                    			webpage_t *new_webpage = webpage_new();
+                    			if(new_webpage != NULL){
+                        			new_webpage->url = new_url;
+                        			new_webpage->depth = page->depth + 1;
+                        			bag_insert(pagesToCrawl, new_url, new_webpage);
+                    			} else {
+                        			free(new_url);
+                    			}
+                		} else {
+                    			free(new_url);
+                		}
+            		}
+        	}
+        	free(url);
+    	}
 
-    		free(url); // Free the pulled URL
-	}
-
-	delete_bag(urls);
+    	delete_bag(urls);
 }
 
 int main(const int argc, char *argv[]) {
