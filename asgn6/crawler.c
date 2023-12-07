@@ -106,6 +106,7 @@ void delete_webpage(webpage_t *webpage){
 		}
 		//free webpage
 		free(webpage);
+	}
 }
 
 //function to delete bag
@@ -251,7 +252,7 @@ static void crawl(char *seedURL, char *pageDirectory, const int maxDepth) {
 			exit(EXIT_FAILURE);
 		}
 		//Download html into webpage
-		size_t *length;
+		size_t *length = (size_t*) malloc(sizeof(size_t));
 		webpage->html = download(webpage->url, length);
 		webpage->length = *length;
 		//If webpage is not NULL save the webpage into directory, icrement document ID
@@ -327,7 +328,11 @@ int main(const int argc, char *argv[]) {
 	//Create variables to store seedURL, pageDirectory, and maxDepth
 	char *seedURL;
 	char *pageDirectory;
-	int *maxDepth;
+	int *maxDepth = (int*) malloc(sizeof(int));
+	if(maxDepth == NULL){
+		fprintf(stderr, "error allocating memory for maxDepth");
+		exit(EXIT_FAILURE);
+	}
 	//Parse arguments
 	parseArgs(argc, argv, &seedURL, &pageDirectory, maxDepth);
 	//Crawl
