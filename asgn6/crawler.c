@@ -169,7 +169,7 @@ void extractURLs(char *htmlContent, char *baseUrl, bag_t *bag) {
         	bag_insert(bag, normalizedUrl, normalizedUrl);
 
         	// Free the normalized URL if needed
-        	free(normalizedUrl);
+        	//free(normalizedUrl);
 
         	// Move past this URL
         	anchorPtr = hrefEnd;
