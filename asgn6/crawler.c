@@ -6,6 +6,8 @@
 #include "curl.h"
 #include "set.h"
 #include "hashtable.h"
+#include "url.h"
+#include "pagedir.h"
 
 /**
  * Parses command-line arguments, placing the corresponding values into the pointer arguments seedURL,
@@ -52,10 +54,8 @@ webpage_t* webpage_new(void){
 		return NULL;
 	}
 	//Initialize all data in webpage to NULL
-	temp_webpage->url == NULL;
-	temp_webpage->html == NULL;
-	temp_webpage->length == NULL;
-	temp_webpage->depth == NULL;
+	temp_webpage->url = NULL;
+	temp_webpage->html = NULL;
 	return temp_webpage;
 }
 
@@ -87,7 +87,6 @@ void *bag_pull(bag_t *bag){
 	//Make set in bag equal to next node
 	bag->set = temp_set->next;
 	//free everything and return the webpage
-	free(temp_set->key);
 	free(temp_set);
 	return item;
 	
@@ -105,12 +104,6 @@ void delete_webpage(webpage_t *webpage){
 		if(webpage->html != NULL){
 			free(webpage->html);
 		}
-		if(webpage->length != NULL){
-			free(webpage->length);
-		}
-		if(webpage->depth != NULL){
-			free(webpage->depth);
-		}
 		//free webpage
 		free(webpage);
 }
@@ -120,7 +113,7 @@ void delete_bag(bag_t *bag){
 	//if bag is not NULL check if set isn't NULL, delete set then free bag
 	if(bag != NULL){
 		if(bag->set != NULL){
-			set_delete(bag->set);
+			set_delete(bag->set, NULL);
 		}
 		free(bag);
 	}
@@ -224,7 +217,7 @@ static void crawl(char *seedURL, char *pageDirectory, const int maxDepth) {
 	}
 	//Insert seedURL into hashtable, if it fails return error
 	if(hashtable_insert(pagesSeen, seedURL, seedURL) == false){
-		fprintf(stderr, "issue inserting seedURL to hashtable\n";
+		fprintf(stderr, "issue inserting seedURL to hashtable\n");
 		exit(EXIT_FAILURE);
 	}
 	//Create new bag pagesToCrawl, if creation fails return error
@@ -237,7 +230,7 @@ static void crawl(char *seedURL, char *pageDirectory, const int maxDepth) {
 	webpage_t *seed_webpage = webpage_new();
 	if(seed_webpage == NULL){
 		fprintf(stderr, "issue creating seed_webpage\n");
-		exit(EXIT_FAILURE
+		exit(EXIT_FAILURE);
 	}
 	//Pass url and depth into seed_webpage
 	seed_webpage->url = seedURL;
