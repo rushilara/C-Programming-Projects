@@ -40,8 +40,18 @@ bool bag_insert(bag_t *bag, const char *key, void *item){
 		return false;
 	}
 	//If insertion into bag set fails, return false
-	if(set_insert(bag->set, key, item) == false){
-		return false;
+	if(bag->set != NULL){
+		if(set_insert(bag->set, key, item) == false){
+			return false;
+		}
+	}else{
+		bag->set = set_new();
+		if(bag->set == NULL){
+			return false;
+		}
+		bag->set->key = key;
+		bag->set->item = item;
+		bag->set->next = NULL;
 	}
 	return true;
 }
@@ -121,60 +131,55 @@ void delete_bag(bag_t *bag){
 //Function to extractURLs from html into a bag
 void extractURLs(char *htmlContent, char *baseUrl, bag_t *bag) {
 	char *anchorPtr = htmlContent;
-    	char *hrefStart;
-    	char *hrefEnd;
+    	char *hrefStart, *hrefEnd;
     	char urlBuffer[2048]; // Buffer for URLs
 
-    	while ((anchorPtr = strstr(anchorPtr, "<a ")) != NULL) {
-        	if ((hrefStart = strstr(anchorPtr, "href=\"")) != NULL) {
-            		hrefStart += 6; // Skip past 'href="'
-        	} else if ((hrefStart = strstr(anchorPtr, "href='")) != NULL) {
-            		hrefStart += 6; // Skip past "href='"
-        	} else {
-            		anchorPtr++; // Move past this <a tag
-            		continue;
+    	while ((anchorPtr = strstr(anchorPtr, "<a")) != NULL) {
+        	// Find the end of the <a> tag
+        	char *tagEnd = strchr(anchorPtr, '>');
+        	if (tagEnd == NULL) {
+            		break; // Malformed HTML, exit the loop
         	}
 
+        	// Search for the href attribute within the tag
+        	hrefStart = strstr(anchorPtr, "href=\"");
+        	if (hrefStart == NULL || hrefStart > tagEnd) {
+            		hrefStart = strstr(anchorPtr, "href='");
+            		if (hrefStart == NULL || hrefStart > tagEnd) {
+                		anchorPtr = tagEnd; // Move to the end of this <a tag
+                		continue;
+            		}
+        	}
+
+        	// Adjust position past 'href="' or "href='"
+        	hrefStart += 6; 
+
+        	// Find the end of the href value
         	hrefEnd = strchr(hrefStart, hrefStart[-1] == '\"' ? '\"' : '\'');
-        	if (hrefEnd == NULL) {
-            		anchorPtr++; // Skip malformed href and continue
+        	if (hrefEnd == NULL || hrefEnd > tagEnd) {
+            		anchorPtr = tagEnd; // Move to the end of this <a tag
             		continue;
         	}
 
-        	// Check for URL length to prevent buffer overflow
+        	// Extract the URL
         	size_t urlLength = hrefEnd - hrefStart;
-        	if (urlLength >= sizeof(urlBuffer)) {
-            		// URL is too long; skip this URL
-            		anchorPtr = hrefEnd;
-            		continue;
+        	if (urlLength < sizeof(urlBuffer)) {
+            		strncpy(urlBuffer, hrefStart, urlLength);
+            		urlBuffer[urlLength] = '\0'; // Ensure null-termination
+
+            		// Normalize URL
+            		char* normalizedUrl = normalizeURL(baseUrl, urlBuffer);
+            		if (normalizedUrl != NULL) {
+                		bag_insert(bag, normalizedUrl, normalizedUrl);
+                		// Optionally free normalizedUrl if not used elsewhere
+            		}
         	}
 
-        	// Copy the URL to the buffer
-        	strncpy(urlBuffer, hrefStart, urlLength);
-        	urlBuffer[urlLength] = '\0'; // Ensure null-termination
-
-        	// Check if the URL is an anchor (starts with '#')
-        	if (urlBuffer[0] == '#') {
-            		anchorPtr = hrefEnd; // Skip this URL
-            		continue;
-        	}
-
-		// Normalize URL
-    		char* normalizedUrl = normalizeURL(baseUrl, urlBuffer);
-
-    		// Check if URL was successfully normalized before adding to the bag
-    		if (normalizedUrl != NULL) {
-        		// Add the URL to the bag
-        		if (!bag_insert(bag, normalizedUrl, normalizedUrl)) {
-            			// Handle failed insertion
-            			free(normalizedUrl); // Free memory if insertion fails
-    			}
-
-    		// Move past this URL
-    		anchorPtr = hrefEnd;
-	}
+        	// Move past this URL
+        	anchorPtr = hrefEnd;
+   	 }
 }
-}
+
 
 
 static void parseArgs(const int argc, char *argv[], char **seedURL, char **pageDirectory, int *maxDepth) {
@@ -243,19 +248,21 @@ static void crawl(char *seedURL, char *pageDirectory, const int maxDepth) {
 		//Initialize document_id to start with 1
 		int document_id = 1;
 		//While bag is not empty
-		while(!bag_empty(pagesToCrawl)){
-			//Pull webpage from bag, if webpage is null return NULL
-			webpage_t *webpage = bag_pull(pagesToCrawl);
-			if(webpage == NULL){
-				fprintf(stderr, "issue pulling webpage from bag\n");
-				exit(EXIT_FAILURE);
-			}
-			//Download html into webpage
-			size_t length;
-    			webpage->html = download(webpage->url, &length);
-    			webpage->length = length;
-			//If webpage is not NULL save the webpage into directory, icrement document ID
-			if(webpage->html != NULL){
+		while (!bag_empty(pagesToCrawl)) {
+			printf("here\n");
+        		webpage_t *webpage = bag_pull(pagesToCrawl);
+        		if (webpage == NULL) {
+            			fprintf(stderr, "issue pulling webpage from bag\n");
+            			exit(EXIT_FAILURE);
+        		}
+
+        		size_t *length = (size_t*) malloc(sizeof(size_t));
+        		webpage->html = download(webpage->url, length);
+        		webpage->length = *length;
+        		free(length); // Free length after use
+			
+
+        		if (webpage->html != NULL) {
 				pagedir_save(webpage, pageDirectory, document_id);
 				document_id++;
 				//If depth isn't at maxDepth scan more pages into bag and hashtable
@@ -289,17 +296,23 @@ static void pageScan(webpage_t *page, bag_t *pagesToCrawl, hashtable_t *pagesSee
 	//Extract URLs into bag
 	extractURLs(page->html, page->url, urls);
 	//Iterate through bag
-	while(!bag_empty(urls)){
+	while (!bag_empty(urls)) {
         	char *url = bag_pull(urls);
-        	if(isInternalURL(page->url, url)){
-            		char *new_url = strdup(url);
-            		if(new_url != NULL){
-                		if(hashtable_insert(pagesSeen, new_url, new_url)){
+        	if (url == NULL) {
+            		continue; // Skip if the URL is NULL
+        	}
+        	if (isInternalURL(page->url, url)) {
+            		char *new_url = normalizeURL(page->url, url);
+            		if (new_url != NULL) { // Check if normalizeURL returned a valid URL
+                		if (hashtable_insert(pagesSeen, new_url, new_url)) {
                     			webpage_t *new_webpage = webpage_new();
-                    			if(new_webpage != NULL){
-                        			new_webpage->url = new_url;
+                    			if (new_webpage != NULL) {
+                        			new_webpage->url = strdup(new_url);
                         			new_webpage->depth = page->depth + 1;
-                        			bag_insert(pagesToCrawl, new_url, new_webpage);
+                        			if (!bag_insert(pagesToCrawl, new_url, new_webpage)) {
+                            				free(new_webpage->url);
+                         	   			free(new_webpage);
+                        			}
                     			} else {
                         			free(new_url);
                     			}
@@ -310,7 +323,6 @@ static void pageScan(webpage_t *page, bag_t *pagesToCrawl, hashtable_t *pagesSee
         	}
         	free(url);
     	}
-
     	delete_bag(urls);
 }
 

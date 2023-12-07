@@ -57,7 +57,7 @@ char * download(const char *url, size_t *size_out) {
 	CURL *curl = curl_easy_init();
 	char error_buffer[CURL_ERROR_SIZE];
 	curl_buffer_size = 0;
-
+	curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1l);
 	curl_easy_setopt(curl, CURLOPT_URL, url);
 	curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, error_buffer);
 	curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 1l);
