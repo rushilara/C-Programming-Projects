@@ -251,7 +251,9 @@ static void crawl(char *seedURL, char *pageDirectory, const int maxDepth) {
 			exit(EXIT_FAILURE);
 		}
 		//Download html into webpage
-		webpage->html = download(webpage->url, webpage->length);
+		size_t *length;
+		webpage->html = download(webpage->url, length);
+		webpage->length = *length;
 		//If webpage is not NULL save the webpage into directory, icrement document ID
 		if(webpage->html != NULL){
 			pagedir_save(webpage, pageDirectory, document_id);
@@ -268,7 +270,7 @@ static void crawl(char *seedURL, char *pageDirectory, const int maxDepth) {
 
 	}
 	//Delette the hashtable and the bag
-	hashtable_delete(pagesSEEN);
+	hashtable_delete(pagesSeen, NULL);
 	delete_bag(pagesToCrawl);
 
 }
@@ -329,7 +331,7 @@ int main(const int argc, char *argv[]) {
 	//Parse arguments
 	parseArgs(argc, argv, &seedURL, &pageDirectory, maxDepth);
 	//Crawl
-	crawl(seedURL, pageDirectory, maxDepth);
+	crawl(seedURL, pageDirectory, *maxDepth);
 	return 0;
 
 }

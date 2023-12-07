@@ -2,6 +2,7 @@
 #define HASH_H_
 #include <stdbool.h>
 #include "set.h"
+#include <stdio.h>
 
 typedef struct hashtable_t hashtable_t;
 struct hashtable_t{

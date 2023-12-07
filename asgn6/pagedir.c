@@ -17,7 +17,7 @@ bool pagedir_init(const char *pageDirectory) {
 		//Make file in pageDirectory named "any_name.crawler"
 		snprintf(fullpath, sizeof(fullpath), "%s/%s", pageDirectory, "any_name.crawler");
 		// Create file in order to check if it works properly
-		File *file = fopen(fullpath, "w");
+		FILE *file = fopen(fullpath, "w");
 		if(!file){
 			return false;
 		}
