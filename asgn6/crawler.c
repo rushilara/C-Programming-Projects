@@ -130,54 +130,57 @@ void delete_bag(bag_t *bag){
 
 //Function to extractURLs from html into a bag
 void extractURLs(char *htmlContent, char *baseUrl, bag_t *bag) {
-	char *anchorPtr = htmlContent;
-    	char *hrefStart, *hrefEnd;
-    	char urlBuffer[2048]; // Buffer for URLs
+    char *anchorPtr = htmlContent;
+    char *hrefStart;
+    char *hrefEnd;
+    char urlBuffer[2048]; // Buffer for URLs
 
-    	while ((anchorPtr = strstr(anchorPtr, "<a")) != NULL) {
-        	// Find the end of the <a> tag
-        	char *tagEnd = strchr(anchorPtr, '>');
-        	if (tagEnd == NULL) {
-            		break; // Malformed HTML, exit the loop
-        	}
+    while ((anchorPtr = strstr(anchorPtr, "<a ")) != NULL) {
+        if ((hrefStart = strstr(anchorPtr, "href=\"")) != NULL) {
+            hrefStart += 6; // Skip past 'href="'
+        } else if ((hrefStart = strstr(anchorPtr, "href='")) != NULL) {
+            hrefStart += 6; // Skip past "href='"
+        } else {
+            anchorPtr++; // Move past this <a tag
+            continue;
+        }
 
-        	// Search for the href attribute within the tag
-        	hrefStart = strstr(anchorPtr, "href=\"");
-        	if (hrefStart == NULL || hrefStart > tagEnd) {
-            		hrefStart = strstr(anchorPtr, "href='");
-            		if (hrefStart == NULL || hrefStart > tagEnd) {
-                		anchorPtr = tagEnd; // Move to the end of this <a tag
-                		continue;
-            		}
-        	}
+        hrefEnd = strchr(hrefStart, hrefStart[-1] == '\"' ? '\"' : '\'');
+        if (hrefEnd == NULL) {
+            anchorPtr++; // Skip malformed href and continue
+            continue;
+        }
 
-        	// Adjust position past 'href="' or "href='"
-        	hrefStart += 6; 
+        // Check for URL length to prevent buffer overflow
+        size_t urlLength = hrefEnd - hrefStart;
+        if (urlLength >= sizeof(urlBuffer)) {
+            // URL is too long; skip this URL
+            anchorPtr = hrefEnd;
+            continue;
+        }
 
-        	// Find the end of the href value
-        	hrefEnd = strchr(hrefStart, hrefStart[-1] == '\"' ? '\"' : '\'');
-        	if (hrefEnd == NULL || hrefEnd > tagEnd) {
-            		anchorPtr = tagEnd; // Move to the end of this <a tag
-            		continue;
-        	}
+        // Copy the URL to the buffer
+        strncpy(urlBuffer, hrefStart, urlLength);
+        urlBuffer[urlLength] = '\0'; // Ensure null-termination
 
-        	// Extract the URL
-        	size_t urlLength = hrefEnd - hrefStart;
-        	if (urlLength < sizeof(urlBuffer)) {
-            		strncpy(urlBuffer, hrefStart, urlLength);
-            		urlBuffer[urlLength] = '\0'; // Ensure null-termination
+        // Check if the URL is an anchor (starts with '#')
+        if (urlBuffer[0] == '#') {
+            anchorPtr = hrefEnd; // Skip this URL
+            continue;
+        }
 
-            		// Normalize URL
-            		char* normalizedUrl = normalizeURL(baseUrl, urlBuffer);
-            		if (normalizedUrl != NULL) {
-                		bag_insert(bag, normalizedUrl, normalizedUrl);
-                		// Optionally free normalizedUrl if not used elsewhere
-            		}
-        	}
+        // Normalize URL
+        char* normalizedUrl = normalizeURL(baseUrl, urlBuffer);
 
-        	// Move past this URL
-        	anchorPtr = hrefEnd;
-   	 }
+        // Add the URL to the bag
+        bag_insert(bag, normalizedUrl, normalizedUrl);
+
+        // Free the normalized URL if needed
+        //free(normalizedUrl);
+
+        // Move past this URL
+        anchorPtr = hrefEnd;
+    }
 }
 
 
@@ -249,7 +252,7 @@ static void crawl(char *seedURL, char *pageDirectory, const int maxDepth) {
 		int document_id = 1;
 		//While bag is not empty
 		while (!bag_empty(pagesToCrawl)) {
-			printf("here\n");
+			//printf("here\n");
         		webpage_t *webpage = bag_pull(pagesToCrawl);
         		if (webpage == NULL) {
             			fprintf(stderr, "issue pulling webpage from bag\n");
@@ -263,10 +266,12 @@ static void crawl(char *seedURL, char *pageDirectory, const int maxDepth) {
 			
 
         		if (webpage->html != NULL) {
+				printf("%d\tFetched: %s\n", webpage->depth, webpage->url);
 				pagedir_save(webpage, pageDirectory, document_id);
 				document_id++;
 				//If depth isn't at maxDepth scan more pages into bag and hashtable
 				if(webpage->depth < maxDepth){
+					printf("%d\tScanning: %s\n", webpage->depth, webpage->url);
 					pageScan(webpage, pagesToCrawl, pagesSeen);
 				}	
 			}
@@ -312,7 +317,9 @@ static void pageScan(webpage_t *page, bag_t *pagesToCrawl, hashtable_t *pagesSee
                         			if (!bag_insert(pagesToCrawl, new_url, new_webpage)) {
                             				free(new_webpage->url);
                          	   			free(new_webpage);
-                        			}
+                        			} else{
+							printf("%d\tAdded: %s\n", new_webpage->depth, new_webpage->url);
+						}
                     			} else {
                         			free(new_url);
                     			}
