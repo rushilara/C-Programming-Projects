@@ -17,6 +17,11 @@
 // For bag key will be the url and item will be the webpage
 // For hashtable, both the key and the item will be the webpage
 
+static void parseArgs(const int argc, char *argv[], char **seedURL, char **pageDirectory, int *maxDepth);
+static void crawl(char *seedURL, char *pageDirectory, const int maxDepth);
+static void pageScan(webpage_t *page, bag_t *pagesToCrawl, hashtable_t *pagesSeen);
+
+
 //Create new bag
 bag_t* bag_new(void){
 	// allocate memory for bag pointer

@@ -20,8 +20,8 @@ typedef struct {
 	// Fill in with your implementation
 } hashtable_t;*/
 
-static void parseArgs(const int argc, char *argv[], char **seedURL, char **pageDirectory, int *maxDepth);
-static void crawl(char *seedURL, char *pageDirectory, const int maxDepth);
-static void pageScan(webpage_t *page, bag_t *pagesToCrawl, hashtable_t *pagesSeen);
+//static void parseArgs(const int argc, char *argv[], char **seedURL, char **pageDirectory, int *maxDepth);
+//static void crawl(char *seedURL, char *pageDirectory, const int maxDepth);
+//static void pageScan(webpage_t *page, bag_t *pagesToCrawl, hashtable_t *pagesSeen);
 
 #endif
