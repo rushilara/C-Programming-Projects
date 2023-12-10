@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
+#include <unistd.h>
 #include "crawler.h"
 #include "curl.h"
 #include "set.h"
@@ -198,6 +199,10 @@ static void parseArgs(const int argc, char *argv[], char **seedURL, char **pageD
     	}
 	//Assign seedURL
     	*seedURL = argv[1];
+	if(normalizeURL(*seedURL, *seedURL) == NULL){
+		fprintf(stderr, "Invalid seedURL\n");
+		exit(EXIT_FAILURE);
+	}
 	//If failure to create page directory, print error and exit with failure
     	if (!pagedir_init(argv[2])) {
         	fprintf(stderr, "Failed to initialize page directory\n");
@@ -222,7 +227,7 @@ static void parseArgs(const int argc, char *argv[], char **seedURL, char **pageD
  */
 static void crawl(char *seedURL, char *pageDirectory, const int maxDepth) {
 	//Create new hashtable with the number of slots being maxDepth
-	hashtable_t *pagesSeen = hashtable_new(maxDepth);
+	hashtable_t *pagesSeen = hashtable_new(50);
 	//If creation fails return error
 	if(pagesSeen == NULL){
 		fprintf(stderr, "issue creating hashtable\n");
@@ -271,6 +276,7 @@ static void crawl(char *seedURL, char *pageDirectory, const int maxDepth) {
 			
 
         		if (webpage->html != NULL) {
+				sleep(1);
 				printf("%d\tFetched: %s\n", webpage->depth, webpage->url);
 				pagedir_save(webpage, pageDirectory, document_id);
 				document_id++;
